@@ -1,0 +1,37 @@
+@'
+# Java and Maven
+**/target/
+*.class
+
+# React and Node
+**/node_modules/
+**/dist/
+**/.vite/
+npm-debug.log*
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+**/application-secret*.yml
+**/application-secrets*.yml
+
+# IDE files
+.idea/
+.vscode/
+*.iml
+.metadata/
+**/.settings/
+**/.classpath
+**/.project
+**/.factorypath
+
+# Logs
+*.log
+
+# Operating system files
+.DS_Store
+Thumbs.db
+'@ | Set-Content -Path .gitignore -Encoding utf8**/bin/

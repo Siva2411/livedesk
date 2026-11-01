@@ -1,0 +1,60 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: livedesk-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: livedesk
+      POSTGRES_USER: ${DB_USERNAME:-livedesk}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-livedesk_local_password}
+    volumes:
+      - livedesk-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d livedesk"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+
+  backend:
+    build:
+      context: ./backend
+    container_name: livedesk-api
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      PORT: 8080
+      DB_URL: ${DB_URL:-jdbc:postgresql://postgres:5432/livedesk}
+      DB_USERNAME: ${DB_USERNAME:-livedesk}
+      DB_PASSWORD: ${DB_PASSWORD:-livedesk_local_password}
+      JWT_SECRET: ${JWT_SECRET:-bGl2ZWRlc2stbG9jYWwtZGV2LXNlY3JldC1jaGFuZ2UtbWUtMzItYnl0ZXM=}
+      JWT_EXPIRATION_MINUTES: ${JWT_EXPIRATION_MINUTES:-720}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:8081}
+      WS_ALLOWED_ORIGINS: ${WS_ALLOWED_ORIGINS:-http://localhost:8081}
+      BOOTSTRAP_ADMIN_EMAIL: ${BOOTSTRAP_ADMIN_EMAIL:-admin@livedesk.local}
+      BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD:-ChangeThisAdminPassword!2026}
+      BOOTSTRAP_ADMIN_NAME: ${BOOTSTRAP_ADMIN_NAME:-LiveDesk Admin}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/actuator/health >/dev/null || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 10
+      start_period: 45s
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: ""
+    container_name: livedesk-web
+    restart: unless-stopped
+    ports:
+      - "${WEB_PORT:-8081}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  livedesk-postgres-data:
